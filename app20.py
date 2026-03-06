@@ -23,6 +23,7 @@ def display_flash():
         if m_type == "success": st.success(msg)
         elif m_type == "error": st.error(msg)
         elif m_type == "warning": st.warning(msg)
+        elif m_type == "toast": st.toast(msg, icon="✅")
         del st.session_state.flash_msg
 
 # ==========================================
@@ -917,7 +918,7 @@ def counting_portal(workspace_id, workspace_name):
             db_conn.execute("UPDATE inventory SET total_counted = total_counted + ? WHERE id = ?", (q_val, item_id))
             db_conn.commit()
             st.session_state[f"rst_{item_id}"] = st.session_state.get(f"rst_{item_id}", 0) + 1
-            set_flash(f"✅ Added {q_val} to {item_code}")
+            set_flash(f"Added {q_val} to {item_code}", "toast")
 
     def cb_dropdown_count(item_id, nq_key, nc_key, img_key):
         val = st.session_state.get(nq_key, 0.0)
@@ -929,10 +930,8 @@ def counting_portal(workspace_id, workspace_name):
                            (item_id, st.session_state.username, workspace_id, val, get_current_time(workspace_id), comm, process_image(img_file)))
             db_conn.execute("UPDATE inventory SET total_counted = total_counted + ? WHERE id = ?", (val, item_id))
             db_conn.commit()
-            
-            # Submitting updates the header natively, which closes the expander.
             st.session_state[f"rst_{item_id}"] = st.session_state.get(f"rst_{item_id}", 0) + 1
-            set_flash("✅ Saved count!")
+            set_flash("Saved count!", "toast")
 
     def cb_update_count(count_id, item_id, old_qty, eq_key, ec_key):
         new_qty = st.session_state.get(eq_key, 0.0)
@@ -942,7 +941,7 @@ def counting_portal(workspace_id, workspace_name):
         db_conn.execute("UPDATE inventory SET total_counted = total_counted + ? WHERE id=?", (diff, item_id))
         db_conn.commit()
         st.session_state['force_open_expander'] = item_id
-        set_flash("Count updated!")
+        set_flash("Count updated!", "toast")
 
     def cb_dropdown_issue(item_id, loc, cat_key, comm_key, img_key, tab_key):
         cat = st.session_state.get(cat_key)
@@ -963,9 +962,9 @@ def counting_portal(workspace_id, workspace_name):
                            (item_id, loc, workspace_id, st.session_state.username, cat, comm, process_image(img_file), get_current_time(workspace_id)))
             db_conn.commit()
             st.session_state.pop(f"iss_err_{item_id}", None)
-            st.session_state[tab_key] = "🔢 Stock Count" # Push back to counting ONLY on success!
+            st.session_state[tab_key] = "🔢 Stock Count" 
             st.session_state[f"rst_{item_id}"] = st.session_state.get(f"rst_{item_id}", 0) + 1
-            set_flash("Issue Reported Successfully.")
+            set_flash("Issue Reported Successfully.", "toast")
 
 
     for _, row in df_page.iterrows():
@@ -988,7 +987,6 @@ def counting_portal(workspace_id, workspace_name):
         nc_key = f"n_c_{row['id']}_{rst}"
         icomm_key = f"iss_comm_{row['id']}_{rst}"
         
-        # Smart Expander Logic: Keep it open if they are actively typing or if forced open by a validation
         is_interacting = (
             (st.session_state.get(nq_key, 0.0) > 0) or 
             (st.session_state.get(nc_key, "") != "") or 
@@ -1014,7 +1012,6 @@ def counting_portal(workspace_id, workspace_name):
                     drop_details = " | ".join([f"**{c}**: {row[c]}" for c in drop_cols if c in row and pd.notna(row[c])])
                     if drop_details: st.markdown(f"> *{drop_details}*")
                 
-                # Faux-tabs that guarantee state retention
                 sel_tab = st.radio("Action", ["🔢 Stock Count", "⚠️ Report Issue"], horizontal=True, label_visibility="collapsed", key=tab_key)
                 
                 if sel_tab == "🔢 Stock Count":
@@ -1043,7 +1040,6 @@ def counting_portal(workspace_id, workspace_name):
                     st.button("Submit Count", key=f"n_btn_{row['id']}_{rst}", type="primary", on_click=cb_dropdown_count, args=(row['id'], nq_key, nc_key, nimg_key))
 
                 elif sel_tab == "⚠️ Report Issue":
-                    # Place the error directly inside the box perfectly!
                     if st.session_state.get(f"iss_err_{row['id']}"):
                         st.error(st.session_state.pop(f"iss_err_{row['id']}"))
 
@@ -1109,7 +1105,7 @@ def standalone_issue_report(workspace_id, workspace_name):
                                (db_id, unlisted_name, sel_loc, workspace_id, st.session_state.username, cat, comm, process_image(img_file), get_current_time(workspace_id)))
                 db_conn.commit()
                 st.session_state.pop("sa_iss_err", None)
-                set_flash("✅ Issue Reported!")
+                set_flash("Issue Reported!", "toast")
 
         with st.form("standalone_issue", clear_on_submit=True):
             if st.session_state.get("sa_iss_err"):
@@ -1663,7 +1659,6 @@ else:
             
     menu.append("👤 My Profile") 
     
-    # Adding a key fixes the UI resetting bug
     choice = st.sidebar.radio("Go to:", menu, key="main_sidebar_nav")
     
     if choice == "📝 Counting Portal": counting_portal(ac_id, ac_name)
@@ -1681,3 +1676,5 @@ else:
         db_conn.commit()
         st.session_state.clear()
         st.rerun()
+        #Final for Nistha
+        
